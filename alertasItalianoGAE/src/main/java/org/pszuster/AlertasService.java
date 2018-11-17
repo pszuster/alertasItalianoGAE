@@ -65,50 +65,26 @@ public class AlertasService {
 	@Path("/scheduler")
 	public Response execSchedule() {
 		String especialidad="";
-	   // Properties propsAlertasMail = new Properties();
 	    try {
-	    	//propsAlertasMail.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("alertasmail.properties"));
-
-	    	datastore = DatastoreServiceFactory.getDatastoreService();
-	    	
+	    
+	    	datastore = DatastoreServiceFactory.getDatastoreService();    	
 	    	Query q = new Query("Alerta");
 	    	PreparedQuery pq = datastore.prepare(q);
 	    	List<Entity> alertas = pq.asList(FetchOptions.Builder.withOffset(0));
 	    	Iterator<Entity> iter = alertas.iterator();
-	    	while(iter.hasNext()) {
-	    		
+	    	while(iter.hasNext()) {	    		
 	    		Entity alerta = iter.next();
-	    		Entity usuario = datastore.get(alerta.getParent());
-	  
-	    		
-	    		
-	    		
+	    		Entity usuario = datastore.get(alerta.getParent());	
 	    		CookieManager cookieManager = new CookieManager();
 	    		CookieHandler.setDefault(cookieManager);
 		    	//Login body
-		    	//HttpClient httpclient = null;
 		    	String json = "{\"tipoDocumento\":\"" + usuario.getProperty("tipoDocumento") + "\",\"numeroDocumento\":\"" +  usuario.getProperty("numeroDocumento") + "\",\"password\":\"" + usuario.getProperty("password") + "\"}";
 		    	StringEntity entity = new StringEntity(json);
-		    	//CookieStore httpCookieStore = new BasicCookieStore();
-				//HttpClientBuilder builder = HttpClientBuilder.create().setDefaultCookieStore(httpCookieStore);
-				//httpclient = builder.build();
 		    	
 		    	//obtengo cookie JSESSIONID inicial
-		    	//HttpGet clienteHome = new HttpGet("https://www1.hospitalitaliano.org.ar/PortalWeb/");
-		    	//HttpResponse homeResponse = httpclient.execute(clienteHome);
-		    	
-		    	
-		    	////URL urlHome = new URL("https://www1.hospitalitaliano.org.ar/PortalWeb/" );
-	    		////HttpURLConnection connHome = (HttpURLConnection) urlHome.openConnection();
-	    		
 	    		String rtdoHome = httpGet("https://www1.hospitalitaliano.org.ar/PortalWeb/");
 				
 				//Login
-				/*HttpPost clienteLogin = new HttpPost("https://www1.hospitalitaliano.org.ar/wssPortal/api/auth/login");
-				clienteLogin.addHeader("Content-Type", "application/json");
-				clienteLogin.setEntity(entity);
-				HttpResponse loginResponse = httpclient.execute(clienteLogin);*/
-				
 	    		URL urlLogin = new URL("https://www1.hospitalitaliano.org.ar/wssPortal/api/auth/login" );
 	    		HttpURLConnection connLogin = (HttpURLConnection) urlLogin.openConnection();
 	    		connLogin.setDoOutput(true);
@@ -126,8 +102,6 @@ public class AlertasService {
 			      }
 			      readerLogin.close();
 				JsonParser jsonparser = new JsonParser();	
-				//String datosUsuarioStr = EntityUtils.toString(loginResponse.getEntity());
-				//JsonObject loginResponseObj = jsonparser.parse(datosUsuarioStr).getAsJsonObject();
 				JsonObject loginResponseObj = jsonparser.parse(responseLogin.toString()).getAsJsonObject();
 				
 				String lugaresAtencionStr="";
@@ -135,12 +109,7 @@ public class AlertasService {
 				for (String lugar: lugaresAtencion) {
 					lugaresAtencionStr+="&lugarAtencionIds=" + lugar;
 				}
-				//Busco primeros 10 turnos				
-				/*HttpGet clienteTurnos = new HttpGet("https://www1.hospitalitaliano.org.ar/wssPortal/api/turnos/reserva/buscar?esMiMedico=false&especialidadId=" + alerta.getProperty("especialidad") + "&idPersonaFederada=" + loginResponseObj.get("id") + "&limit=10" + lugaresAtencionStr + "&pageInit=0");
-				clienteTurnos.addHeader("x-auth-token",loginResponseObj.get("perfil").getAsJsonObject().get("token").getAsString());
-				 HttpResponse turnosResponse = httpclient.execute(clienteTurnos);*/
-				
-				
+				//Busco primeros 10 turnos							
 				
 				URL urlTurnos = new URL("https://www1.hospitalitaliano.org.ar/wssPortal/api/turnos/reserva/buscar?esMiMedico=false&especialidadId=" + alerta.getProperty("especialidad") + "&idPersonaFederada=" + loginResponseObj.get("id") + "&limit=10" + lugaresAtencionStr + "&pageInit=0");
 	    		HttpURLConnection connTurnos = (HttpURLConnection) urlTurnos.openConnection();
@@ -154,15 +123,10 @@ public class AlertasService {
 	    	    	jsonTurnosSB.append(lineTurnos);
 	    	    }
 	    	    readerTurnos.close();
-				// String turnosStr = EntityUtils.toString(turnosResponse.getEntity());
-	    	    String turnosStr = jsonTurnosSB.toString();
-				
-				//String turnosStr = httpGet("https://www1.hospitalitaliano.org.ar/wssPortal/api/turnos/reserva/buscar?esMiMedico=false&especialidadId=" + alerta.getProperty("especialidad") + "&idPersonaFederada=" + loginResponseObj.get("id") + "&limit=10" + lugaresAtencionStr + "&pageInit=0");
-				
+	    	    String turnosStr = jsonTurnosSB.toString();			
 				JsonArray turnosObjArr = jsonparser.parse(turnosStr).getAsJsonArray();
 				 				 
 				 //Comparo útlimos tunos encontrados vs actuales
-				 //JsonArray lastFoundArr = jsonparser.parse(rs.getString("lastFound")).getAsJsonArray();
 				 String lastFoundStr = alerta.getProperty("lastfound").toString();
 				 long lastFoundFirstDate= Long.MAX_VALUE;
 				 if(!lastFoundStr.equals("")) {
@@ -203,30 +167,14 @@ public class AlertasService {
 					 
 					 alerta.setProperty("lastfound", newLastFoundStr);
 					 datastore.put(alerta);
-					 
-				/*	 Properties mailProps = new Properties();
-					 mailProps.put("mail.smtp.socketFactory.class","javax.net.ssl.SSLSocketFactory");
-					 mailProps.put("mail.smtp.socketFactory.port", propsAlertasMail.getProperty("mail.smtp.port"));
-					 mailProps.put("mail.smtp.auth", "true");
-					 mailProps.put("mail.smtp.starttls.enable", "true");
-					 mailProps.put("mail.smtp.host", propsAlertasMail.getProperty("mail.smtp.host"));
-					 mailProps.put("mail.smtp.port", propsAlertasMail.getProperty("mail.smtp.port"));
-					*/ 
 					 Properties props = new Properties();
 					 Session session = Session.getDefaultInstance(props, null);
 
 					 
 					 for (int tryCount=0; tryCount < 5; tryCount++) {
 						 try {
-						/* Session session = Session.getInstance(mailProps,
-								  new javax.mail.Authenticator() {
-									protected PasswordAuthentication getPasswordAuthentication() {
-										return new PasswordAuthentication(propsAlertasMail.getProperty("username"), propsAlertasMail.getProperty("password"));
-									}
-								  });*/
-				
+
 						 Message message = new MimeMessage(session);
-							//message.setFrom(new InternetAddress(propsAlertasMail.getProperty("username")));
 						 message.setFrom(new InternetAddress("alertas@alertas-italiano.appspotmail.com"));	
 						 message.setRecipients(Message.RecipientType.TO,
 									InternetAddress.parse(email));
@@ -236,7 +184,6 @@ public class AlertasService {
 							Transport.send(message);
 							log.info("Mail enviado");
 							return Response.status(200).build();
-							//tryCount=5;
 						 }catch (MessagingException e) {
 								e.printStackTrace();
 								try {
@@ -340,10 +287,6 @@ public class AlertasService {
 
 		 try {
 			 datastore = DatastoreServiceFactory.getDatastoreService();
-			// Query q = new Query("Alerta").setFilter(new FilterPredicate(Entity.KEY_RESERVED_PROPERTY,FilterOperator.EQUAL,KeyFactory.createKey("Alerta",alertaID))).setKeysOnly();
-			// PreparedQuery pq = datastore.prepare(q);
-			// Entity result = pq.asSingleEntity();
-			// datastore.delete(result.getKey());
 			 datastore.delete(KeyFactory.createKey(KeyFactory.createKey("Usuario",numeroDoc),"Alerta", alertaID));
 		 }catch (Exception e) {
 			e.printStackTrace();
@@ -391,7 +334,6 @@ public class AlertasService {
 			URL url = new URL(urlStr);
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
 			con.setConnectTimeout(30000);
-			//reader = new BufferedReader(new InputStreamReader(url.openStream()));
 			reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
 			 sb = new StringBuffer();
 		    String line;
