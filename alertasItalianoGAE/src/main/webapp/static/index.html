@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Alertas - Turnos Italiano</title>
+
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js" ></script>
+<script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+ <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+<style>
+table, th, td {
+    border: 1px solid darkolivegreen;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 10px;
+}
+th {
+    text-align: center;
+}
+
+thead{
+	font-weight: bold;
+}
+tbody{
+ color: darkolivegreen;
+}
+
+tr:nth-child(even) {background-color: #f2f2f2;}
+ 
+</style>
+</head>
+<body>
+	<div id="loginDiv">
+	<h1> Alertas para turnos del HIBA</h1>
+	  <table>
+	  <tr>
+	  	<td>
+			<label class="col-md-12 font-14 text-white" for="tipoDocumento">Tipo de documento</label> 
+		</td>
+		<td>
+		     <select name="tipoDocumento" id="tipoDocumento">
+		     	<option label="CI " value="CI">CI</option>
+				<option label="CIE" value="CIE">CIE</option>
+				<option label="CM " value="CM">CM</option>
+				<option label="DNI" value="DNI" selected="selected">DNI</option>
+				<option label="DNM" value="DNM">DNM</option>
+				<option label="LC " value="LC ">LC</option>
+				<option label="LE " value="LE ">LE</option>
+				<option label="PAS" value="PAS">PAS</option>
+			  </select>
+		 	</td>
+		</tr>
+		<tr>
+			<td>Número de documento</td>
+			<td>
+			  <input type="text" name="numeroDocumento" id="numeroDocumento"> <br>
+			</td>
+			</tr>
+			<tr>
+			<td>
+			 <label class="col-md-12 font-14 text-white" for="password">Contraseña</label>
+			 </td>
+			 <td>
+			<input type="password" name="password" id="password"><br>
+			</td>
+			</tr>
+			</table>
+			<br>
+			<button  class="ui-button ui-widget ui-corner-all" onclick="datosUsuario=login()">
+				<b>Ingresar</b>
+			</button>
+			
+
+	</div>
+
+<div id="alertasActualesDiv" style="display: none;">
+<h2>Alertas actuales:</h2>
+<table id="listaAlertas"  >
+<thead>
+<tr style="background-color: indianred; colot: black; text-align: center;"><td hidden="true">ID</td><td>Especialidad</td><td>Lugares de Atención</td><td>Primer turno disponible</td><td>E-Mail</td><td><button class="ui-button ui-widget ui-corner-all ui-button-icon-only" id="refreshTablaButton"><span class="ui-icon ui-icon-arrowrefresh-1-e"></span> </button></td></tr>
+</thead>
+<tbody>
+<tr></tr>
+</tbody>
+</table>
+<br>
+<button id="mostrarCrearAlerta" onclick="mostrarCrearAlerta()" class="ui-button ui-widget ui-corner-all">Crear Alerta </button>
+<br>
+</div>
+
+<div id="crearAlertaDiv" style="display: none;">
+<label for="mail">e-Mail: </label>
+<input type="text" id="email"/><br>
+  <label for="especialidadesAC">Especialidades: </label>
+  <input id="especialidadesAC">
+  <input type="hidden" id="especialidadesAC-id">
+  <fieldset id="lugaresFS">
+    <legend>Lugares de Atención: </legend>
+   </fieldset>
+<button id="crearAlerta" onclick="crearAlerta()" class="ui-button ui-widget ui-corner-all">Crear</button>
+</div>
+
+</body>
+<script>
+	$.ajaxSetup({
+		async : false
+	});
+	
+	function mostrarCrearAlerta(){
+		document.getElementById("crearAlertaDiv").style.display='block';
+		document.getElementById("mostrarCrearAlerta").style.display='none';
+	}
+	
+	function ocultarCrearAlerta(){
+		document.getElementById("crearAlertaDiv").style.display='none';
+		document.getElementById("mostrarCrearAlerta").style.display='block';
+		
+		document.getElementById('email').value="";
+		document.getElementById('especialidadesAC-id').value="";
+		document.getElementById('especialidadesAC').value="";
+		$("#lugaresFS").empty();
+	}
+
+	var datosUsuario;
+	
+	var listaLugaresAtencion = [{"id":14,"descripcion":"CENTRO MEDICO AVELLANEDA"},{"id":72,"descripcion":"CENTRO MEDICO BARRIO NORTE II - LARREA"},{"id":19,"descripcion":"CENTRO MEDICO BELGRANO I - JURAMENTO"},{"id":15,"descripcion":"CENTRO MEDICO BELGRANO II - VIRREY DEL PINO"},{"id":53,"descripcion":"CENTRO MEDICO BELGRANO III - PALPA"},{"id":4,"descripcion":"CENTRO MEDICO CABALLITO"},{"id":20,"descripcion":"CENTRO MEDICO CASEROS"},{"id":52,"descripcion":"CENTRO MEDICO FLORES I - CARABOBO"},{"id":41,"descripcion":"CENTRO MEDICO FLORES II - NAZCA"},{"id":42,"descripcion":"CENTRO MEDICO ITUZAINGO"},{"id":40,"descripcion":"CENTRO MEDICO LOMAS DE ZAMORA"},{"id":66,"descripcion":"CENTRO MEDICO MORON"},{"id":33,"descripcion":"CENTRO MEDICO RAMOS MEJIA"},{"id":21,"descripcion":"CENTRO MEDICO SAN ISIDRO"},{"id":12,"descripcion":"CENTRO MEDICO SAN JUSTO"},{"id":26,"descripcion":"CENTRO MEDICO SAN MARTIN"},{"id":32,"descripcion":"CENTRO MEDICO VILLA DEL PARQUE"},{"id":17,"descripcion":"CENTRO MEDICO VILLA URQUIZA"},{"id":2,"descripcion":"CONSULTORIOS PARTICULARES"},{"id":13,"descripcion":"PLAN DE SALUD - HOSPITAL CENTRAL"}];
+	var listaEspecialidades = [{"id":299,"descripcion":"Adolescencia"},{"id":224,"descripcion":"Alergia"},{"id":576,"descripcion":"Alergia - Pediatria"},{"id":179,"descripcion":"Andrologia - Reproduccion- Servicio De Urologia"},{"id":173,"descripcion":"Artroscopia Y Protesis De Rodilla"},{"id":736,"descripcion":"Atencion Primaria De La Salud- Servicio De Gineco"},{"id":210,"descripcion":"Cardiologia"},{"id":219,"descripcion":"Cardiologia - Prevencion"},{"id":291,"descripcion":"Cirugia Cardiovascular Pediatrica"},{"id":103,"descripcion":"Cirugia De Cabeza Y Cuello"},{"id":105,"descripcion":"Cirugia De Esofago, Estomago Y Duodeno"},{"id":107,"descripcion":"Cirugia De Higado, Via Biliar Y Pancreas"},{"id":109,"descripcion":"Cirugia De Paredes Abdominales"},{"id":110,"descripcion":"Cirugia De Torax"},{"id":101,"descripcion":"Cirugia General"},{"id":527,"descripcion":"Cirugia General Pediatrica"},{"id":188,"descripcion":"Cirugia Plastica"},{"id":589,"descripcion":"Cirugia Refractiva"},{"id":130,"descripcion":"Climaterio"},{"id":303,"descripcion":"Clinica De Mielomeningocele"},{"id":223,"descripcion":"Clinica Medica"},{"id":298,"descripcion":"Clinica Pediatrica"},{"id":104,"descripcion":"Coloproctologia"},{"id":636,"descripcion":"Cornea Y Cirugia Refractiva"},{"id":453,"descripcion":"Cuidados Paliativos"},{"id":240,"descripcion":"Dermatologia"},{"id":307,"descripcion":"Dermatologia Infantil"},{"id":528,"descripcion":"Endocrinologia Ambulatoria"},{"id":308,"descripcion":"Endocrinologia Pediatrica Y Crecimiento"},{"id":262,"descripcion":"Enfermedades  Cerebrovasculares"},{"id":263,"descripcion":"Esclerosis Multiple"},{"id":508,"descripcion":"Estomatologia"},{"id":524,"descripcion":"Estrabismo"},{"id":638,"descripcion":"Evaluacion Cardiologica Prequirurgica"},{"id":479,"descripcion":"Evaluacion Clinica Prequirurgica"},{"id":106,"descripcion":"Flebolinfologia"},{"id":247,"descripcion":"Gastroenterologia"},{"id":526,"descripcion":"Gastroenterologia Pediatrica"},{"id":309,"descripcion":"Gastroenterologia-hepatologia Pediatrica"},{"id":505,"descripcion":"Glaucoma"},{"id":311,"descripcion":"Hemato-oncologia Pediatrica"},{"id":226,"descripcion":"Hematologia"},{"id":227,"descripcion":"Hepatologia"},{"id":228,"descripcion":"Hipertension"},{"id":229,"descripcion":"Infectologia"},{"id":313,"descripcion":"Infectologia Pediatrica"},{"id":164,"descripcion":"Infectologia Y Superficie Ocular"},{"id":305,"descripcion":"Med Ambulatoria Y Atencion Primaria Pediatrica"},{"id":238,"descripcion":"Medicina Familiar"},{"id":170,"descripcion":"Medicina Y Traumatologia Del Deporte"},{"id":315,"descripcion":"Metabolismo Y Diabetes Pediatrico"},{"id":256,"descripcion":"Nefrologia"},{"id":316,"descripcion":"Nefrologia Pediatrica"},{"id":320,"descripcion":"Neonatologia"},{"id":231,"descripcion":"Neumonologia"},{"id":397,"descripcion":"Neumonologia Pediatrica"},{"id":504,"descripcion":"Neuro- Oftalmologia"},{"id":139,"descripcion":"Neurocirugia"},{"id":294,"descripcion":"Neurocirugia Pediatrica"},{"id":260,"descripcion":"Neurologia"},{"id":265,"descripcion":"Neurologia - Epilepsia"},{"id":267,"descripcion":"Neurologia - Movimientos Anormales Y Parkinson"},{"id":317,"descripcion":"Neurologia Pediatrica"},{"id":233,"descripcion":"Nutricion"},{"id":458,"descripcion":"Nutricion Pediatrica"},{"id":149,"descripcion":"Obstetricia"},{"id":166,"descripcion":"Oculoplastica, Vias Lagrimales Y Orbita"},{"id":163,"descripcion":"Oftalmologia"},{"id":235,"descripcion":"Oncologia"},{"id":533,"descripcion":"Oncologia Pediatrica"},{"id":506,"descripcion":"Orl - Alergia"},{"id":114,"descripcion":"Orl - Cabeza Y Cuello"},{"id":507,"descripcion":"Orl - Cabeza Y Cuello"},{"id":169,"descripcion":"Ortopedia Infantil"},{"id":177,"descripcion":"Ortopedia Oncologica Y Trasplantes Oseos"},{"id":521,"descripcion":"Osteopatias Metabolicas - Endocrinologia"},{"id":118,"descripcion":"Otologia"},{"id":112,"descripcion":"Otorrinolaringologia"},{"id":120,"descripcion":"Otorrinolaringologia Infantil"},{"id":134,"descripcion":"Patologia Cervical Ginecologica"},{"id":171,"descripcion":"Patologia De Cadera"},{"id":497,"descripcion":"Patologia De Hombro"},{"id":172,"descripcion":"Patologia De Pie Y Tobillo"},{"id":174,"descripcion":"Patologia Del Miembro Superior"},{"id":175,"descripcion":"Patologia Del Raquis"},{"id":136,"descripcion":"Patologia Mamaria"},{"id":132,"descripcion":"Reproduccion - Ginecologia"},{"id":517,"descripcion":"Reproduccion Masculina"},{"id":167,"descripcion":"Retina"},{"id":236,"descripcion":"Reumatologia"},{"id":269,"descripcion":"Trastornos De Memoria Y Conducta"},{"id":270,"descripcion":"Trastornos Del Sueño - Servicio De Neurologia"},{"id":168,"descripcion":"Traumatologia Y Ortopedia"},{"id":138,"descripcion":"Uroginecologia"},{"id":178,"descripcion":"Urologia"},{"id":296,"descripcion":"Urologia Pediatrica"},{"id":578,"descripcion":"Uveitis"}];
+	
+	
+	$(document).ready(function() {
+
+		$("#refreshTablaButton").click(function(event){
+				refrescarTabla(datosUsuario.tipoDocumento,datosUsuario.numeroDocumento );			
+		});
+
+	});
+
+	function login() {
+		var form = {};
+		var datosUsuario;
+		var especialidades;
+		var especialidades2=[];
+		var alertas=[];
+		
+		
+		form.tipoDocumento = document.getElementById('tipoDocumento').value;
+		form.numeroDocumento = document.getElementById('numeroDocumento').value;
+		form.password = document.getElementById('password').value;
+		$.ajax({
+					type : "POST",
+					url : "https://www1.hospitalitaliano.org.ar/wssPortal/api/auth/login",
+					data : JSON.stringify(form),
+					contentType : 'application/json',
+					success : function(data) {
+						datosUsuario = data;
+						especialidades = getListaEspecialidades(data);
+						especialidades.forEach(function(esp){
+									especialidades2.push({label: esp.descripcion, value:esp.id});
+									});
+						document.getElementById("loginDiv").style.display='none';
+						document.getElementById("alertasActualesDiv").style.display='block';
+						llenarTablaAlertas(getAlertas(datosUsuario.tipoDocumento,datosUsuario.numeroDocumento));
+						$("#especialidadesAC").autocomplete(
+								{source:especialidades2,
+								 select: function(event,ui){
+									 $("#especialidadesAC").val(ui.item.label);
+									 $("#especialidadesAC-id").val(ui.item.value);
+									 $("#lugaresFS").empty();
+									 llenarComboLugares(getListaLugaresAtencion(ui.item.value));
+									 return false;
+								 }
+						});
+					}
+				});
+
+		return datosUsuario;
+
+	}
+
+	function getListaEspecialidades(datosUsuario) {
+		var esp;
+		$.ajax({
+			async:false,
+			url: "https://www1.hospitalitaliano.org.ar/wssPortal/api/commons/especialidad?idUsuario="+ datosUsuario.id,
+			headers: {"x-auth-token": datosUsuario.perfil.token},
+			success: function(data){esp=data;}
+		});
+		return esp;
+	}
+	
+	function getListaLugaresAtencion(especialidadID){
+		var lugares=null;
+		 $.ajax({
+			 async:false,
+			 url: "https://www1.hospitalitaliano.org.ar/wssPortal/api/commons/lugar-atencion/especialidad/" + especialidadID + "?idUsuario=" + datosUsuario.id,
+			 headers: {"x-auth-token" : datosUsuario.perfil.token},
+			 success: function(data){
+				 lugares = data;
+			 }
+		 });
+		 return lugares;
+	}
+	function llenarComboLugares(lugares){
+		var idCounter=1;
+		lugares.forEach(function(lugar){
+	 		$("#lugaresFS").append("<label for='chkLugar_" +idCounter +"'>" + lugar.descripcion + "</label><input id='chkLugar_" + idCounter + "' type='checkbox' value='" + lugar.id + "'/>");
+	 		$("#chkLugar_"+idCounter).checkboxradio({icon:false});
+	 		idCounter++;
+	 		});
+		
+	}
+	
+	function crearAlerta(){
+		var alertaData={};
+		alertaData.mail= document.getElementById('email').value;
+		alertaData.tipoDocumento = document.getElementById('tipoDocumento').value;
+		alertaData.numeroDocumento = document.getElementById('numeroDocumento').value;
+		alertaData.pwd = document.getElementById('password').value;
+		alertaData.especialidad = document.getElementById('especialidadesAC-id').value;
+		alertaData.lugares = [];
+		$("#lugaresFS input:checked").each(function(){alertaData.lugares.push($(this).val())});
+		
+		
+		$.ajax({
+			async:false,
+			url:"../rest/alertas",
+			method: "POST",
+			data: JSON.stringify(alertaData),
+			contentType: "application/json",
+			success: function(data){alert(JSON.stringify(data));}
+		});
+		
+		refrescarTabla(alertaData.tipoDocumento,alertaData.numeroDocumento);
+		ocultarCrearAlerta();
+		
+
+	}
+	
+	function deleteAlerta(alertaID,numeroDoc){
+		var rta="";
+		$.ajax({
+			async:false,
+			url:"../rest/alertas?alertaID=" + alertaID + "&numeroDoc=" + numeroDoc ,
+			method: "DELETE",
+			success: function(data){rta=data;}
+			});
+		return rta;
+	}
+	function borrarAlerta(alertaid, tipoDoc,numDoc){
+		deleteAlerta(alertaid,numDoc);
+		refrescarTabla(tipoDoc,numDoc);
+	}
+	
+	function getAlertas(tipoDoc, numDoc){
+		
+		var rta ="";
+	$.ajax({
+		async:false,
+		url:"../rest/alertas/all?tipoDoc=" + tipoDoc + "&numeroDoc=" + numDoc,
+		method: "GET",
+		success: function(data){rta=data;}
+		});
+	
+	return rta;
+	}
+	
+	function llenarTablaAlertas(alertas){
+		$("#listaAlertas tbody").empty();
+		
+		for(var i=0; i<alertas.length;i++){
+			
+			var lugaresAten = "";
+			alertas[i].lugares.split(",").forEach(function(lugar){
+				
+				lugaresAten=lugaresAten+ listaLugaresAtencion.filter(function(lug){return lug.id==lugar})[0].descripcion + "<br>";
+			});
+			$("#listaAlertas").append("<tr><td hidden='true'>" +  alertas[i].alertaid +    "</td><td>" + listaEspecialidades.filter(function(esp){return esp.id==alertas[i].especialidad})[0].descripcion + "</td><td>" + lugaresAten + "</td><td>" + ((alertas[i].lastfound != "")? new Date(parseInt(alertas[i].lastfound.split(',')[0])):"N/A") + "</td><td>" + alertas[i].mail + "</td><td><button class=\"ui-button ui-widget ui-corner-all\" onclick=\"borrarAlerta("+ alertas[i].alertaid + ",'" + alertas[i].tipodoc + "','" + alertas[i].numerodoc +  "')\" id=\"borrarAlerta" + i + "\">Borrar</button></td>");
+		}
+	}
+	
+	function refrescarTabla(tipoDoc, numDoc){
+		alertas = getAlertas(tipoDoc,numDoc);
+		llenarTablaAlertas(alertas);
+	}
+</script>
+</html>
