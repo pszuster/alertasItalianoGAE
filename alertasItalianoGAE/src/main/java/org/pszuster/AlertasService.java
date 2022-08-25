@@ -110,9 +110,26 @@ public class AlertasService {
 					lugaresAtencionStr+="&lugarAtencionIds=" + lugar;
 				}
 				//Busco primeros 10 turnos							
+
+				String pacienteId ="";
+				Object pacienteIdObj = alerta.getProperty("pacienteId");
+				if(pacienteIdObj != null){
+					 pacienteId = alerta.getProperty("pacienteId").toString();
+				}
+				else{
+					pacienteId = loginResponseObj.get("id").toString() ;
+				}
 				
-				URL urlTurnos = new URL("https://www1.hospitalitaliano.org.ar/wssPortal/api/turnos/reserva/buscar?esMiMedico=false&especialidadId=" + alerta.getProperty("especialidad") + "&idPersonaFederada=" + loginResponseObj.get("id") + "&limit=10" + lugaresAtencionStr + "&pageInit=0");
-	    		HttpURLConnection connTurnos = (HttpURLConnection) urlTurnos.openConnection();
+			
+				//URL urlTurnosEspec = new URL("https://www1.hospitalitaliano.org.ar/wssPortal/api/turnos/reserva/buscar?esMiMedico=false&especialidadId=" + alerta.getProperty("especialidad") + "&idPersonaFederada=" + loginResponseObj.get("id") + "&limit=10" + lugaresAtencionStr + "&pageInit=0");	
+				URL urlTurnosEspec = new URL("https://www1.hospitalitaliano.org.ar/wssPortal/api/turnos/reserva/buscar?esMiMedico=false&especialidadId=" + alerta.getProperty("especialidad") + "&idPersonaFederada=" + pacienteId + "&limit=10" + lugaresAtencionStr + "&pageInit=0");		
+				
+				//URL urlTurnosNombre = new URL( "https://www1.hospitalitaliano.org.ar/wssPortal/api/turnos/reserva/buscar?esMiMedico=false&idPersonaFederada=" + loginResponseObj.get("id")  + "&limit=10" + lugaresAtencionStr + "&medicoId=" + alerta.getProperty("nombre") + "&pageInit=0");
+				URL urlTurnosNombre = new URL( "https://www1.hospitalitaliano.org.ar/wssPortal/api/turnos/reserva/buscar?esMiMedico=false&idPersonaFederada=" +  pacienteId  + "&limit=10" + lugaresAtencionStr + "&medicoId=" + alerta.getProperty("nombre") + "&pageInit=0");
+				
+				URL urlTurnos  = alerta.getProperty("tipoAlerta").equals("nombre") ? urlTurnosNombre : urlTurnosEspec;
+				
+				HttpURLConnection connTurnos = (HttpURLConnection) urlTurnos.openConnection();
 	    		connTurnos.addRequestProperty("x-auth-token", loginResponseObj.get("perfil").getAsJsonObject().get("token").getAsString());
 	    		connTurnos.setConnectTimeout(30000);
 	    		BufferedReader readerTurnos = new BufferedReader(new InputStreamReader(connTurnos.getInputStream()));
@@ -123,7 +140,10 @@ public class AlertasService {
 	    	    	jsonTurnosSB.append(lineTurnos);
 	    	    }
 	    	    readerTurnos.close();
-	    	    String turnosStr = jsonTurnosSB.toString();			
+	    	    String turnosStr = jsonTurnosSB.toString();	
+
+				log.info( turnosStr);
+
 				JsonArray turnosObjArr = jsonparser.parse(turnosStr).getAsJsonArray();
 				 				 
 				 //Comparo útlimos tunos encontrados vs actuales
@@ -139,6 +159,10 @@ public class AlertasService {
 				 		lastFoundFirstDate = new Long(lastFoundStr).longValue();
 				 }
 				 	 
+				 if(turnosObjArr.size()<1){
+					continue;
+				 }
+				 
 				 long curFirstDate = turnosObjArr.get(0).getAsJsonObject().get("fechaTurno").getAsLong();
 				 if( curFirstDate != lastFoundFirstDate){
 					 //tengo turno anterior al registrado
@@ -265,9 +289,16 @@ public class AlertasService {
 		    String lugares = datosAlerta.get("lugares").toString().replaceAll("[\\[\\]\"]","") ;
 		    
 		     Entity alerta = new Entity("Alerta",usuario.getKey());
-		     alerta.setProperty("especialidad", datosAlerta.get("especialidad").getAsInt());
+		     alerta.setProperty("tipoAlerta",datosAlerta.get("tipoAlerta").getAsString());
+		     if(datosAlerta.get("tipoAlerta").getAsString().equals("nombre")) {
+		    	 alerta.setProperty( "nombre",  datosAlerta.get("nombre").getAsInt());
+		    	 alerta.setProperty( "nombreCompleto",  datosAlerta.get("nombreCompleto").getAsString());
+		     }
+		     else
+		    	 alerta.setProperty("especialidad", datosAlerta.get("especialidad").getAsInt());
 		     alerta.setProperty("lugares", lugares);
 		     alerta.setProperty("lastfound", "");
+			 alerta.setProperty("pacienteId", datosAlerta.get("pacienteId").getAsInt());
 		     datastore.put(alerta);
 		     execSchedule();
 		} catch ( Exception e) {
@@ -308,9 +339,9 @@ public class AlertasService {
             throws Exception {
         	 JsonArray jsonArray = new JsonArray();
              Gson gson = new GsonBuilder().create();
-             JsonObject obj = new JsonObject();
              Iterator<Entity> iter = listaAlertas.iterator();
              while(iter.hasNext()) {
+            	 JsonObject obj = new JsonObject();
             	 Entity e = iter.next();
             	 for(Map.Entry<String, Object> prop : e.getProperties().entrySet()) {
             		 obj.add(prop.getKey(), gson.toJsonTree(prop.getValue()));
