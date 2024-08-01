@@ -3,8 +3,9 @@
 
   <threadsafe>true</threadsafe>
   <sessions-enabled>false</sessions-enabled>
-  <runtime>java8</runtime>
- <url-stream-handler>urlfetch</url-stream-handler> 
+  <runtime>java11</runtime>
+  <app-engine-apis>true</app-engine-apis>
+  <url-stream-handler>urlfetch</url-stream-handler> 
   <system-properties>
     <property name="java.util.logging.config.file" value="WEB-INF/logging.properties"/>
   </system-properties>
