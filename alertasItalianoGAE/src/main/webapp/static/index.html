@@ -181,15 +181,14 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 					},
 					source: function(req,resp){
 						$.ajax({
-							url: "https://www1.hospitalitaliano.org.ar/wssPortal/api/commons/medico/" + pacienteId + "?todos=true\&search=" + req.term,
+							url: "../rest/alertas/medicos?tipoDoc=" + datosUsuario.tipoDocumento + "&numeroDoc=" + datosUsuario.numeroDocumento + "&password=" + encodeURIComponent(document.getElementById('password').value) + "&idUsuario=" + pacienteId + "&search=" + encodeURIComponent(req.term),
 							dataType: "json",
-							headers: {"x-auth-token": datosUsuario.perfil.token},
 							success: function(data){
 								resp( $.map( data, function( item ){
-										return { 
+										return {
 												label: item.apellido + " "+ item.nombre,
-		                                    	value: item.id     
-		                                   		}
+					                                 	value: item.id
+					                                		}
 								}));
 							}
 							
@@ -203,8 +202,7 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 	function getLugaresByMedicoId(medicoId){
 		var resp;
 		$.ajax({
-			url: "https://www1.hospitalitaliano.org.ar/wssPortal/api/commons/lugar-atencion/medico/" + medicoId + "?esMiMedico=false&idUsuario=" + pacienteId,
-			headers: {"x-auth-token": datosUsuario.perfil.token},
+			url: "../rest/alertas/lugares-atencion-medico?tipoDoc=" + datosUsuario.tipoDocumento + "&numeroDoc=" + datosUsuario.numeroDocumento + "&password=" + encodeURIComponent(document.getElementById('password').value) + "&idUsuario=" + pacienteId + "&medicoId=" + medicoId,
 			success: function(data){
 				resp = data;
 			}
@@ -225,7 +223,7 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 		form.password = document.getElementById('password').value;
 		$.ajax({
 					type : "POST",
-					url : "https://www1.hospitalitaliano.org.ar/wssPortal/api/auth/login",
+					url : "../rest/alertas/login",
 					data : JSON.stringify(form),
 					contentType : 'application/json',
 					success : function(data) {
@@ -250,6 +248,9 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 								 }
 						});
 						
+					},
+					error: function(xhr, status, error) {
+						alert("Login failed: " + error);
 					}
 				});
 
@@ -261,7 +262,6 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 		listaFamiliares.forEach(familiar => $(campo).append(new Option(familiar.nombre + " " + familiar.apellido,familiar.idPersonaFederadaIntegrante)));
 		$(campo).val(usuarioPpalId);
 	}
-
 	function getListaEspecialidades(datosUsuario) {
 		var esp;
 /*		var fliares = datosUsuario.grupoFamiliarDTO;
@@ -275,10 +275,12 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 			});
 		}
 */
+		// For now, just call backend without midUtssid - backend will handle encryption
+		// TODO: Implement frontend encryption properly with async/await
+		var url = "../rest/alertas/especialidades?tipoDoc=" + datosUsuario.tipoDocumento + "&numeroDoc=" + datosUsuario.numeroDocumento + "&password=" + encodeURIComponent(document.getElementById('password').value) + "&idUsuario=" + pacienteId;
 		$.ajax({
 			async:false,
-			url: "https://www1.hospitalitaliano.org.ar/wssPortal/api/commons/especialidad?idUsuario="+ pacienteId,
-			headers: {"x-auth-token": datosUsuario.perfil.token},
+			url: url,
 			success: function(data){esp=data;}
 		});
 		/*var especialideades = esp.concat(espFliares);
@@ -295,8 +297,7 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 		var lugares=null;
 		 $.ajax({
 			 async:false,
-			 url: "https://www1.hospitalitaliano.org.ar/wssPortal/api/commons/lugar-atencion/especialidad/" + especialidadID + "?idUsuario=" + pacienteId,
-			 headers: {"x-auth-token" : datosUsuario.perfil.token},
+			 url: "../rest/alertas/lugares-atencion-especialidad?tipoDoc=" + datosUsuario.tipoDocumento + "&numeroDoc=" + datosUsuario.numeroDocumento + "&password=" + encodeURIComponent(document.getElementById('password').value) + "&idUsuario=" + pacienteId + "&especialidadId=" + especialidadID,
 			 success: function(data){
 				 lugares = data;
 			 }
