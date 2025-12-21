@@ -1,0 +1,4 @@
+cron:
+  - description: Enviar alertas
+    url: /rest/alertas/scheduler
+    schedule: every 30 minutes

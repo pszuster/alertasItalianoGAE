@@ -8,9 +8,12 @@ import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -18,27 +21,23 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Logger;
-import java.util.Base64;
-import java.security.PublicKey;
-import java.security.spec.X509EncodedKeySpec;
-import javax.crypto.Cipher;
 
+import javax.crypto.Cipher;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Context;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import javax.ws.rs.core.Response;
 
 import org.apache.http.entity.StringEntity;
 
@@ -46,7 +45,6 @@ import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.FetchOptions;
-import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.PreparedQuery;
 import com.google.appengine.api.datastore.Query;
 import com.google.appengine.api.datastore.Query.CompositeFilterOperator;
@@ -137,21 +135,25 @@ public class AlertasService {
 			
 				// Build query strings with proper URL encoding (matching JavaScript behavior)
 				String turnosBaseUrl = "https://www1.hospitalitaliano.org.ar/wssPortal/api/turnos/reserva/buscar";
-				String turnosEspecQueryString = "esMiMedico=" + java.net.URLEncoder.encode("false", "UTF-8") +
-					"&especialidadId=" + java.net.URLEncoder.encode(alerta.getProperty("especialidad").toString(), "UTF-8") +
-					"&idPersonaFederada=" + java.net.URLEncoder.encode(pacienteId, "UTF-8") +
-					"&limit=" + java.net.URLEncoder.encode("10", "UTF-8") +
-					lugaresAtencionStr +
-					"&pageInit=" + java.net.URLEncoder.encode("0", "UTF-8");
+				String turnosQueryString;
 				
-				String turnosNombreQueryString = "esMiMedico=" + java.net.URLEncoder.encode("false", "UTF-8") +
-					"&idPersonaFederada=" + java.net.URLEncoder.encode(pacienteId, "UTF-8") +
-					"&limit=" + java.net.URLEncoder.encode("10", "UTF-8") +
-					lugaresAtencionStr +
-					"&medicoId=" + java.net.URLEncoder.encode(alerta.getProperty("nombre").toString(), "UTF-8") +
-					"&pageInit=" + java.net.URLEncoder.encode("0", "UTF-8");
-				
-				String turnosQueryString = alerta.getProperty("tipoAlerta").equals("nombre") ? turnosNombreQueryString : turnosEspecQueryString;
+				if (alerta.getProperty("tipoAlerta").equals("nombre")) {
+					// Build query string for searching by doctor name
+					turnosQueryString = "esMiMedico=" + java.net.URLEncoder.encode("false", "UTF-8") +
+						"&idPersonaFederada=" + java.net.URLEncoder.encode(pacienteId, "UTF-8") +
+						"&limit=" + java.net.URLEncoder.encode("10", "UTF-8") +
+						lugaresAtencionStr +
+						"&medicoId=" + java.net.URLEncoder.encode(alerta.getProperty("nombre").toString(), "UTF-8") +
+						"&pageInit=" + java.net.URLEncoder.encode("0", "UTF-8");
+				} else {
+					// Build query string for searching by specialty
+					turnosQueryString = "esMiMedico=" + java.net.URLEncoder.encode("false", "UTF-8") +
+						"&especialidadId=" + java.net.URLEncoder.encode(alerta.getProperty("especialidad").toString(), "UTF-8") +
+						"&idPersonaFederada=" + java.net.URLEncoder.encode(pacienteId, "UTF-8") +
+						"&limit=" + java.net.URLEncoder.encode("10", "UTF-8") +
+						lugaresAtencionStr +
+						"&pageInit=" + java.net.URLEncoder.encode("0", "UTF-8");
+				}
 				URL urlTurnos = new URL(turnosBaseUrl + "?" + turnosQueryString);
 				
 				HttpURLConnection connTurnos = (HttpURLConnection) urlTurnos.openConnection();

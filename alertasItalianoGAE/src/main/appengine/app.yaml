@@ -1,0 +1,12 @@
+runtime: java17
+entrypoint: 'java -cp "/workspace/*:/workspace/alertasitaliano-1.0.0.war/WEB-INF/classes" com.example.appengine.jetty.Main /workspace/alertasitaliano-1.0.0.war'
+
+env_variables:
+  APPENGINE_USE_EE8: 'true'
+
+automatic_scaling:
+  min_idle_instances: automatic
+  max_idle_instances: automatic
+  min_pending_latency: automatic
+  max_pending_latency: automatic
+  max_instances: 20
