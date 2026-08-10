@@ -128,6 +128,21 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 
 	function setPacienteId(){
 		pacienteId = parseInt($("#pacientes").val()) ;
+		// La lista de especialidades depende del perfil del paciente, hay que recargarla
+		document.getElementById('especialidadesAC').value="";
+		document.getElementById('especialidadesAC-id').value="";
+		document.getElementById('nombresAC').value="";
+		document.getElementById('nombresAC-id').value="";
+		$("#lugaresFS").empty();
+		cargarEspecialidades(datosUsuario);
+	}
+
+	function cargarEspecialidades(datosUsuario){
+		var especialidades = getListaEspecialidades(datosUsuario) || [];
+		var source = especialidades.map(function(esp){
+			return {label: esp.descripcion, value: esp.id};
+		});
+		$("#especialidadesAC").autocomplete("option", "source", source);
 	}
 	
 	function mostrarCrearAlerta(){
@@ -168,6 +183,17 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 				}
 					
 			});
+
+		$("#especialidadesAC").autocomplete(
+				{source:[],
+				 select: function(event,ui){
+					 $("#especialidadesAC").val(ui.item.label);
+					 $("#especialidadesAC-id").val(ui.item.value);
+					 $("#lugaresFS").empty();
+					 llenarComboLugares(getListaLugaresAtencion(ui.item.value));
+					 return false;
+				 }
+		});
 
 		$("#nombresAC").autocomplete(
 				{
@@ -213,8 +239,6 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 	function login() {
 		var form = {};
 		var datosUsuario;
-		var especialidades;
-		var especialidades2=[];
 		var alertas=[];
 		
 		
@@ -229,25 +253,12 @@ tr:nth-child(even) {background-color: #f2f2f2;}
 					success : function(data) {
 						datosUsuario = data;
 						pacienteId = data.id;
-						especialidades = getListaEspecialidades(data);
-						especialidades.forEach(function(esp){
-									especialidades2.push({label: esp.descripcion, value:esp.id});
-									});
+						cargarEspecialidades(data);
 						document.getElementById("loginDiv").style.display='none';
 						document.getElementById("alertasActualesDiv").style.display='block';
 						llenarTablaAlertas(getAlertas(datosUsuario.tipoDocumento,datosUsuario.numeroDocumento));
 						llenarListaFamiliares("#pacientes",data.grupoFamiliarDTO,data.id, data.nombre + " " + data.apellido);
-						$("#especialidadesAC").autocomplete(
-								{source:especialidades2,
-								 select: function(event,ui){
-									 $("#especialidadesAC").val(ui.item.label);
-									 $("#especialidadesAC-id").val(ui.item.value);
-									 $("#lugaresFS").empty();
-									 llenarComboLugares(getListaLugaresAtencion(ui.item.value));
-									 return false;
-								 }
-						});
-						
+
 					},
 					error: function(xhr, status, error) {
 						alert("Login failed: " + error);
